@@ -13,11 +13,29 @@
 
 ## 🚀 使用方法
 
+### 在线使用
+访问 GitHub Pages 部署的在线版本（部署后会自动生成链接）
+
+### 本地使用
 1. 打开 `index.html` 文件
 2. 选择丢失物品的日期
 3. 选择丢失物品的时辰
 4. 点击"开始寻找"按钮
 5. 查看结果并根据提示寻找
+
+## 🌐 部署到 GitHub Pages
+
+### 自动部署（推荐）
+1. 将代码推送到 GitHub 仓库
+2. 在仓库设置中启用 GitHub Pages：
+   - 进入 Settings → Pages
+   - Source 选择 "GitHub Actions"
+3. 推送代码到 `main` 分支，GitHub Actions 会自动部署
+
+### 手动部署
+1. 在仓库设置中启用 GitHub Pages
+2. Source 选择 `main` 分支，目录选择 `/ (root)`
+3. 保存后等待几分钟，访问生成的 Pages 链接
 
 ## 📝 核心口诀
 
