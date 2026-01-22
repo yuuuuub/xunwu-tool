@@ -105,11 +105,11 @@ function getJianXingAccurate(date) {
         // 使用solarlunar库转换为农历
         let lunarData;
         if (typeof solar2lunar !== 'undefined') {
-            // solarlunar库
+            // solarlunar库 - 返回格式: {lYear, lMonth, lDay, ...}
             lunarData = solar2lunar(year, month, day);
-        } else if (typeof LunarCalendar !== 'undefined') {
-            // lunar-calendar-zh库
-            lunarData = LunarCalendar.solarToLunar(year, month, day);
+        } else if (typeof solarlunar !== 'undefined' && solarlunar.solar2lunar) {
+            // solarlunar库的另一种调用方式
+            lunarData = solarlunar.solar2lunar(year, month, day);
         } else {
             // 如果库未加载，使用简化算法
             return getJianXingSimple(date);
