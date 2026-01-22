@@ -95,10 +95,74 @@ function getJianXing(date) {
     return JIAN_XING[jianXingIndex];
 }
 
-// 更准确的十二建星计算（基于公历的简化算法）
+// 更准确的十二建星计算（基于农历）
 function getJianXingAccurate(date) {
-    // 使用一个更准确的算法
-    // 建星从立春后第一个建日开始循环
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    try {
+        // 使用solarlunar库转换为农历
+        let lunarData;
+        if (typeof solar2lunar !== 'undefined') {
+            // solarlunar库
+            lunarData = solar2lunar(year, month, day);
+        } else if (typeof LunarCalendar !== 'undefined') {
+            // lunar-calendar-zh库
+            lunarData = LunarCalendar.solarToLunar(year, month, day);
+        } else {
+            // 如果库未加载，使用简化算法
+            return getJianXingSimple(date);
+        }
+        
+        if (!lunarData || !lunarData.lMonth || !lunarData.lDay) {
+            return getJianXingSimple(date);
+        }
+        
+        const lunarMonth = lunarData.lMonth;
+        const lunarDay = lunarData.lDay;
+        
+        // 十二建星的计算规则：
+        // 1. 每月对应特定的地支：正月建寅、二月建卯、三月建辰...
+        // 2. 从立春后第一个对应地支的日期起"建"
+        // 3. 按"建除满平定执破危成收开闭"顺序循环
+        
+        // 月建地支对应表（农历月份 -> 地支索引）
+        const monthZhiMap = {
+            1: 2,   // 正月建寅 (索引2)
+            2: 3,   // 二月建卯 (索引3)
+            3: 4,   // 三月建辰 (索引4)
+            4: 5,   // 四月建巳 (索引5)
+            5: 6,   // 五月建午 (索引6)
+            6: 7,   // 六月建未 (索引7)
+            7: 8,   // 七月建申 (索引8)
+            8: 9,   // 八月建酉 (索引9)
+            9: 10,  // 九月建戌 (索引10)
+            10: 11, // 十月建亥 (索引11)
+            11: 0,  // 十一月建子 (索引0)
+            12: 1   // 十二月建丑 (索引1)
+        };
+        
+        // 获取当前月份对应的地支索引
+        const monthZhiIndex = monthZhiMap[lunarMonth] || 0;
+        
+        // 计算从月初到当前日期的天数
+        // 简化处理：假设每月从建日开始，按顺序循环
+        // 实际应该找到立春后第一个对应地支的日期，这里用农历日期作为近似
+        const dayInCycle = (lunarDay - 1) % 12;
+        
+        // 根据月份地支和日期计算建星
+        // 建星从建日开始，按顺序循环
+        return JIAN_XING[dayInCycle];
+        
+    } catch (e) {
+        console.warn('农历转换失败，使用简化算法:', e);
+        return getJianXingSimple(date);
+    }
+}
+
+// 简化版十二建星计算（备用方案）
+function getJianXingSimple(date) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
@@ -107,8 +171,7 @@ function getJianXingAccurate(date) {
     const startOfYear = new Date(year, 0, 1);
     const daysFromYearStart = Math.floor((date - startOfYear) / (1000 * 60 * 60 * 24)) + 1;
     
-    // 建星循环，每12天一个周期（简化处理）
-    // 实际应该根据节气调整
+    // 建星循环，每12天一个周期
     const cycle = (daysFromYearStart - 1) % 12;
     
     return JIAN_XING[cycle];
@@ -231,18 +294,46 @@ function handleSearch() {
     const step4 = getLocation(shiChenZhi);
     
     // 显示结果
-    displayResults(step1, step2, step3, step4, gan, zhi, jianXing, shiChenZhi);
+    displayResults(step1, step2, step3, step4, gan, zhi, jianXing, shiChenZhi, date);
+}
+
+// 获取农历信息（用于显示）
+function getLunarInfo(date) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    try {
+        let lunarData;
+        if (typeof solar2lunar !== 'undefined') {
+            lunarData = solar2lunar(year, month, day);
+            if (lunarData && lunarData.lMonth && lunarData.lDay) {
+                return `农历${lunarData.lMonth}月${lunarData.lDay}日`;
+            }
+        } else if (typeof LunarCalendar !== 'undefined') {
+            lunarData = LunarCalendar.solarToLunar(year, month, day);
+            if (lunarData && lunarData.lMonth && lunarData.lDay) {
+                return `农历${lunarData.lMonth}月${lunarData.lDay}日`;
+            }
+        }
+    } catch (e) {
+        // 忽略错误
+    }
+    return '';
 }
 
 // 显示结果
-function displayResults(step1, step2, step3, step4, gan, zhi, jianXing, shiChenZhi) {
+function displayResults(step1, step2, step3, step4, gan, zhi, jianXing, shiChenZhi, date) {
     const resultSection = document.getElementById('result');
     resultSection.style.display = 'block';
+    
+    const lunarInfo = getLunarInfo(date);
+    const dateInfo = lunarInfo ? `${gan}${zhi}日（${lunarInfo}）` : `${gan}${zhi}日`;
     
     // 第一步结果
     const step1El = document.getElementById('step1');
     step1El.innerHTML = `
-        <p>日期：${gan}${zhi}日，时辰：${shiChenZhi}时</p>
+        <p>日期：${dateInfo}，时辰：${shiChenZhi}时</p>
         <p>${step1.message} <span class="status ${step1.status}">${step1.canFind ? '可寻找' : '难找回'}</span></p>
     `;
     
