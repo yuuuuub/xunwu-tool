@@ -154,6 +154,14 @@ footer {
     text-align: center;
     color: #666;
     font-size: 0.9em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.6;
+}
+
+footer p {
+    margin: 0;
+    white-space: normal;
 }
 
 @media (max-width: 600px) {

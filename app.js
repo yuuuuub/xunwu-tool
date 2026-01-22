@@ -267,4 +267,108 @@ function handleSearch() {
     const timeSelect = document.getElementById('time').value;
     
     if (!dateInput || timeSelect === '') {
-        alert('请填写完整的日期和时辰信
+        alert('请填写完整的日期和时辰信息！');
+        return;
+    }
+    
+    const date = new Date(dateInput);
+    const shiChenIndex = parseInt(timeSelect);
+    const shiChenZhi = SHI_CHEN[shiChenIndex];
+    
+    // 计算天干地支
+    const { gan, zhi } = getGanZhi(date);
+    
+    // 计算十二建星
+    const jianXing = getJianXingAccurate(date);
+    
+    // 第一步：截路空亡判断
+    const step1 = checkJieLuKongWang(gan, shiChenZhi);
+    
+    // 第二步：距离判断
+    const step2 = checkDistance(jianXing);
+    
+    // 第三步：方位判断
+    const step3 = getDirection(jianXing);
+    
+    // 第四步：具体位置
+    const step4 = getLocation(shiChenZhi);
+    
+    // 显示结果
+    displayResults(step1, step2, step3, step4, gan, zhi, jianXing, shiChenZhi, date);
+}
+
+// 获取农历信息（用于显示）
+function getLunarInfo(date) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    try {
+        let lunarData;
+        if (typeof solar2lunar !== 'undefined') {
+            lunarData = solar2lunar(year, month, day);
+            if (lunarData && lunarData.lMonth && lunarData.lDay) {
+                return `农历${lunarData.lMonth}月${lunarData.lDay}日`;
+            }
+        } else if (typeof LunarCalendar !== 'undefined') {
+            lunarData = LunarCalendar.solarToLunar(year, month, day);
+            if (lunarData && lunarData.lMonth && lunarData.lDay) {
+                return `农历${lunarData.lMonth}月${lunarData.lDay}日`;
+            }
+        }
+    } catch (e) {
+        // 忽略错误
+    }
+    return '';
+}
+
+// 显示结果
+function displayResults(step1, step2, step3, step4, gan, zhi, jianXing, shiChenZhi, date) {
+    const resultSection = document.getElementById('result');
+    resultSection.style.display = 'block';
+    
+    const lunarInfo = getLunarInfo(date);
+    const dateInfo = lunarInfo ? `${gan}${zhi}日（${lunarInfo}）` : `${gan}${zhi}日`;
+    
+    // 第一步结果
+    const step1El = document.getElementById('step1');
+    step1El.innerHTML = `
+        <p>日期：${dateInfo}，时辰：${shiChenZhi}时</p>
+        <p>${step1.message} <span class="status ${step1.status}">${step1.canFind ? '可寻找' : '难找回'}</span></p>
+    `;
+    
+    // 第二步结果
+    const step2El = document.getElementById('step2');
+    step2El.innerHTML = `
+        <p>当日建星：<strong>${jianXing}日</strong></p>
+        <p>${step2.message} <span class="status ${step2.status}">${step2.distance}</span></p>
+    `;
+    
+    // 第三步结果
+    const step3El = document.getElementById('step3');
+    step3El.innerHTML = `
+        <p>${step3.message}</p>
+        <p>重点往<strong>${step3.direction}</strong>方向寻找</p>
+    `;
+    
+    // 第四步结果
+    const step4El = document.getElementById('step4');
+    step4El.innerHTML = `<p>${step4}</p>`;
+    
+    // 滚动到结果区域
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 绑定事件
+document.addEventListener('DOMContentLoaded', function() {
+    const searchBtn = document.getElementById('searchBtn');
+    searchBtn.addEventListener('click', handleSearch);
+    
+    // 回车键触发
+    document.getElementById('date').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') handleSearch();
+    });
+    document.getElementById('time').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') handleSearch();
+    });
+});
