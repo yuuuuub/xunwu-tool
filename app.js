@@ -57,6 +57,16 @@ const SHI_CHEN_DING_WEI = {
     '亥': '找悬空的"半腰"位置，比如裤脚卷边、书包侧袋'
 };
 
+function getSolarToLunarData(year, month, day) {
+    if (typeof solar2lunar !== 'undefined') {
+        return solar2lunar(year, month, day);
+    }
+    if (typeof solarlunar !== 'undefined' && solarlunar.solar2lunar) {
+        return solarlunar.solar2lunar(year, month, day);
+    }
+    return null;
+}
+
 // 计算天干地支
 function getGanZhi(date) {
     // 1900年1月31日为甲子日，以此为基准计算
@@ -102,60 +112,28 @@ function getJianXingAccurate(date) {
     const day = date.getDate();
     
     try {
-        // 使用solarlunar库转换为农历
-        let lunarData;
-        if (typeof solar2lunar !== 'undefined') {
-            // solarlunar库 - 返回格式: {lYear, lMonth, lDay, ...}
-            lunarData = solar2lunar(year, month, day);
-        } else if (typeof solarlunar !== 'undefined' && solarlunar.solar2lunar) {
-            // solarlunar库的另一种调用方式
-            lunarData = solarlunar.solar2lunar(year, month, day);
-        } else {
-            // 如果库未加载，使用简化算法
+        const lunarData = getSolarToLunarData(year, month, day);
+        if (!lunarData) return getJianXingSimple(date);
+        
+        if (!lunarData.gzDay || !lunarData.gzMonth) {
             return getJianXingSimple(date);
         }
         
-        if (!lunarData || !lunarData.lMonth || !lunarData.lDay) {
-            return getJianXingSimple(date);
-        }
-        
-        const lunarMonth = lunarData.lMonth;
-        
-        // 十二建星的计算规则：
-        // 1. 每月对应特定的地支：正月建寅、二月建卯、三月建辰...
-        // 2. 从立春后第一个对应地支的日期起"建"
-        // 3. 按"建除满平定执破危成收开闭"顺序循环
-        
-        // ✅ 正确算法（建除十二神/十二建星）
-        // - 月建：正月寅、二月卯、...、十一月子、十二月丑
-        // - 建日：当日“日支”与“月建”相同的那天为“建”，之后按顺序循环
-        //
-        // 因此：建星序号 = (日支序号 - 月建序号 + 12) % 12
-        const monthJianZhiIndexMap = {
-            1: 2,   // 寅
-            2: 3,   // 卯
-            3: 4,   // 辰
-            4: 5,   // 巳
-            5: 6,   // 午
-            6: 7,   // 未
-            7: 8,   // 申
-            8: 9,   // 酉
-            9: 10,  // 戌
-            10: 11, // 亥
-            11: 0,  // 子
-            12: 1   // 丑
-        };
+        // ✅ 标准推法：建星序号 = (日支序号 - 月支序号 + 12) % 12
+        // 其中“月支”以节气为准（solarlunar 的 gzMonth 即按节气推算的月干支）
+        const gzMonth = lunarData.gzMonth;
+        const monthZhi = typeof gzMonth === 'string' && gzMonth.length > 0 ? gzMonth.slice(-1) : null;
+        const monthZhiIndex = monthZhi ? DI_ZHI.indexOf(monthZhi) : -1;
 
-        const monthJianZhiIndex = monthJianZhiIndexMap[lunarMonth];
-        const gzDay = lunarData.gzDay || lunarData.gzday || lunarData.GzDay;
+        const gzDay = lunarData.gzDay;
         const dayZhi = typeof gzDay === 'string' && gzDay.length > 0 ? gzDay.slice(-1) : null;
         const dayZhiIndex = dayZhi ? DI_ZHI.indexOf(dayZhi) : -1;
 
-        if (monthJianZhiIndex === undefined || dayZhiIndex < 0) {
+        if (monthZhiIndex < 0 || dayZhiIndex < 0) {
             return getJianXingSimple(date);
         }
 
-        const jianIndex = (dayZhiIndex - monthJianZhiIndex + 12) % 12;
+        const jianIndex = (dayZhiIndex - monthZhiIndex + 12) % 12;
         return JIAN_XING[jianIndex];
         
     } catch (e) {
@@ -274,12 +252,19 @@ function handleSearch() {
         return;
     }
     
-    const date = new Date(dateInput);
+    const [y, m, d] = dateInput.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
     const shiChenIndex = parseInt(timeSelect);
     const shiChenZhi = SHI_CHEN[shiChenIndex];
-    
-    // 计算天干地支
-    const { gan, zhi } = getGanZhi(date);
+
+    const lunarData = getSolarToLunarData(y, m, d);
+    let gan, zhi;
+    if (lunarData && lunarData.gzDay) {
+        gan = lunarData.gzDay.slice(0, 1);
+        zhi = lunarData.gzDay.slice(-1);
+    } else {
+        ({ gan, zhi } = getGanZhi(date));
+    }
     
     // 计算十二建星
     const jianXing = getJianXingAccurate(date);
@@ -307,17 +292,9 @@ function getLunarInfo(date) {
     const day = date.getDate();
     
     try {
-        let lunarData;
-        if (typeof solar2lunar !== 'undefined') {
-            lunarData = solar2lunar(year, month, day);
-            if (lunarData && lunarData.lMonth && lunarData.lDay) {
-                return `农历${lunarData.lMonth}月${lunarData.lDay}日`;
-            }
-        } else if (typeof LunarCalendar !== 'undefined') {
-            lunarData = LunarCalendar.solarToLunar(year, month, day);
-            if (lunarData && lunarData.lMonth && lunarData.lDay) {
-                return `农历${lunarData.lMonth}月${lunarData.lDay}日`;
-            }
+        const lunarData = getSolarToLunarData(year, month, day);
+        if (lunarData && lunarData.lMonth && lunarData.lDay) {
+            return `农历${lunarData.lMonth}月${lunarData.lDay}日`;
         }
     } catch (e) {
         // 忽略错误

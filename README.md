@@ -85,13 +85,12 @@
 - CSS3
 - JavaScript (原生)
 - solarlunar - 农历转换库
-- lunar-calendar-zh - 农历日历库
 
 ## ✨ 更新日志
 
 ### v1.1.0
-- ✅ 集成专业的农历转换库（solarlunar、lunar-calendar-zh）
-- ✅ 优化十二建星计算算法，基于农历日期进行准确计算
+- ✅ 集成农历转换库（solarlunar）
+- ✅ 修正十二建星计算：按“月支(节气月支)+日支”推导
 - ✅ 显示农历日期信息，提升准确性
 
 ## 📄 许可证
