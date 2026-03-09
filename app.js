@@ -120,40 +120,43 @@ function getJianXingAccurate(date) {
         }
         
         const lunarMonth = lunarData.lMonth;
-        const lunarDay = lunarData.lDay;
         
         // 十二建星的计算规则：
         // 1. 每月对应特定的地支：正月建寅、二月建卯、三月建辰...
         // 2. 从立春后第一个对应地支的日期起"建"
         // 3. 按"建除满平定执破危成收开闭"顺序循环
         
-        // 月建地支对应表（农历月份 -> 地支索引）
-        const monthZhiMap = {
-            1: 2,   // 正月建寅 (索引2)
-            2: 3,   // 二月建卯 (索引3)
-            3: 4,   // 三月建辰 (索引4)
-            4: 5,   // 四月建巳 (索引5)
-            5: 6,   // 五月建午 (索引6)
-            6: 7,   // 六月建未 (索引7)
-            7: 8,   // 七月建申 (索引8)
-            8: 9,   // 八月建酉 (索引9)
-            9: 10,  // 九月建戌 (索引10)
-            10: 11, // 十月建亥 (索引11)
-            11: 0,  // 十一月建子 (索引0)
-            12: 1   // 十二月建丑 (索引1)
+        // ✅ 正确算法（建除十二神/十二建星）
+        // - 月建：正月寅、二月卯、...、十一月子、十二月丑
+        // - 建日：当日“日支”与“月建”相同的那天为“建”，之后按顺序循环
+        //
+        // 因此：建星序号 = (日支序号 - 月建序号 + 12) % 12
+        const monthJianZhiIndexMap = {
+            1: 2,   // 寅
+            2: 3,   // 卯
+            3: 4,   // 辰
+            4: 5,   // 巳
+            5: 6,   // 午
+            6: 7,   // 未
+            7: 8,   // 申
+            8: 9,   // 酉
+            9: 10,  // 戌
+            10: 11, // 亥
+            11: 0,  // 子
+            12: 1   // 丑
         };
-        
-        // 获取当前月份对应的地支索引
-        const monthZhiIndex = monthZhiMap[lunarMonth] || 0;
-        
-        // 计算从月初到当前日期的天数
-        // 简化处理：假设每月从建日开始，按顺序循环
-        // 实际应该找到立春后第一个对应地支的日期，这里用农历日期作为近似
-        const dayInCycle = (lunarDay - 1) % 12;
-        
-        // 根据月份地支和日期计算建星
-        // 建星从建日开始，按顺序循环
-        return JIAN_XING[dayInCycle];
+
+        const monthJianZhiIndex = monthJianZhiIndexMap[lunarMonth];
+        const gzDay = lunarData.gzDay || lunarData.gzday || lunarData.GzDay;
+        const dayZhi = typeof gzDay === 'string' && gzDay.length > 0 ? gzDay.slice(-1) : null;
+        const dayZhiIndex = dayZhi ? DI_ZHI.indexOf(dayZhi) : -1;
+
+        if (monthJianZhiIndex === undefined || dayZhiIndex < 0) {
+            return getJianXingSimple(date);
+        }
+
+        const jianIndex = (dayZhiIndex - monthJianZhiIndex + 12) % 12;
+        return JIAN_XING[jianIndex];
         
     } catch (e) {
         console.warn('农历转换失败，使用简化算法:', e);
